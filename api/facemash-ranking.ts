@@ -40,12 +40,6 @@ router.get("/date-options", async (req: Request, res: Response) => {
 
 
 
-
-
-
-
-
-
 router.post("/data", async (req: Request, res: Response) => {
     const selectedDate = req.query.selectedDate;
     console.log('Selected Date:', selectedDate);
