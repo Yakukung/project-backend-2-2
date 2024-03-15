@@ -5,6 +5,8 @@ import { Request, Response, Router } from 'express';
 
 export const router = express.Router();
  
+
+
 router.get("/", (req, res) => {
     conn.query('SELECT * FROM posts INNER JOIN users ON posts.user_id = users.user_id;', (err, result, fields) => {
         if (err) {
@@ -69,23 +71,43 @@ router.post('/', async (req: Request, res: Response) => {
         const [updatedLoser] = await queryAsync('SELECT * FROM posts WHERE post_id = ?', [loserPostId]);
 
         // 6. นำคะแนน `score` มาใส่ในตาราง `votes`:
-        await queryAsync('INSERT INTO votes (post_id, eloRating, time) VALUES (?, ?, CURRENT_TIMESTAMP())', [
+        await queryAsync('INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?,  ?, CURRENT_TIMESTAMP())', [
             winnerPostId,
-            updatedEloRatingWinner
+            updatedEloRatingWinner,
+            oldRatingWinner
         ]);
 
-        await queryAsync('INSERT INTO votes (post_id, eloRating, time) VALUES (?, ?, CURRENT_TIMESTAMP())', [
+        await queryAsync('INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())', [
             loserPostId,
-            updatedEloRatingLoser
+            updatedEloRatingLoser,
+            oldRatingLoser
         ]);
+
+        const statWiner = oldRatingWinner-updatedEloRatingWinner;
+        const statLoser = oldRatingLoser-updatedEloRatingLoser;
+
+       // ดึงโพสต์ทั้งหมดจากฐานข้อมูล
+       const allPosts = await queryAsync('SELECT * FROM posts',[]);
+
+       // เรียงลำดับโพสต์ตามคะแนน
+       allPosts.sort((a, b) => b.score - a.score);
+
+       // อัปเดตอันดับของโพสต์
+       for (let i = 0; i < allPosts.length; i++) {
+           const postId = allPosts[i].post_id;
+           const rank = i + 1;
+
+           await queryAsync('UPDATE votes SET rank = ? WHERE post_id = ?', [rank, postId]);
+       }
+
 
         // 7. ส่งคำตอบกลับ:
         res.json({
             message: 'Vote successfully recorded',
             updatedWinner,
-            updatedEloRatingWinner: { oldRating: oldRatingWinner, newRating: updatedEloRatingWinner },
+            updatedEloRatingWinner: { oldRating: oldRatingWinner, newRating: updatedEloRatingWinner, stat: statWiner},
             updatedLoser,
-            updatedEloRatingLoser: { oldRating: oldRatingLoser, newRating: updatedEloRatingLoser }
+            updatedEloRatingLoser: { oldRating: oldRatingLoser, newRating: updatedEloRatingLoser,   stat: statLoser},
         });
     } catch (error) {
         // 8. จัดการข้อผิดพลาด:
@@ -93,6 +115,8 @@ router.post('/', async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Error processing vote' });
     }
 });
+
+
 
 
 // ฟังก์ชันทำ query ในฐานข้อมูล แบบ Promise:

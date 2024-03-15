@@ -6,13 +6,14 @@ export const router = express.Router();
 router.post("/", (req, res) => {
     const user_id = req.body.user_id;
     const query = `
-      SELECT 
-        users.*, 
-        JSON_ARRAYAGG(JSON_OBJECT('post_id', posts.post_id, 'picture', posts.picture, 'score', posts.score,  'time', DATE_FORMAT(posts.time, '%H:%i — %M %e, %Y'))) AS posts
-      FROM users 
-      LEFT JOIN posts ON users.user_id = posts.user_id 
-      WHERE users.user_id = ?
-      GROUP BY users.user_id`;
+    SELECT 
+    users.*, 
+        CONCAT('[', GROUP_CONCAT(JSON_OBJECT('post_id', posts.post_id, 'picture', posts.picture, 'score', posts.score,  'time', DATE_FORMAT(posts.time, '%H:%i — %M %e, %Y'))), ']') AS posts
+    FROM users 
+    LEFT JOIN posts ON users.user_id = posts.user_id 
+    WHERE users.user_id = ?
+    GROUP BY users.user_id
+    `;
   
     console.log('Request received with user_id:', user_id);
   

@@ -9,7 +9,7 @@ router.get("/date-options", async (req: Request, res: Response) => {
     try {
         // Set the start date to 7 days ago from today
         const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 6); // Adjusted to go back exactly 7 days
+        startDate.setDate(startDate.getDate() - 8); // Adjusted to go back exactly 7 days
         const formattedStartDate = startDate.toISOString().split('T')[0];
 
         // Set the end date to today
@@ -45,15 +45,15 @@ router.post("/data", async (req: Request, res: Response) => {
     console.log('Selected Date:', selectedDate);
   
     const query = `
-    SELECT u.user_id, CONCAT(u.first_name, " ", u.last_name) AS full_name, u.icon, p.*,
+    SELECT u.user_id, u.first_name, u.last_name, u.icon, p.post_id, p.picture,
            DATE_FORMAT(MAX(v.time), '%Y-%m-%d %H:%i:%s') AS formatted_time,
-            MAX(v.eloRating) AS max_eloRating
+            MAX(v.newRating) AS newRating
     FROM users u
     JOIN posts p ON u.user_id = p.user_id
     JOIN votes v ON p.post_id = v.post_id
     WHERE DATE(v.time) = ?
     GROUP BY u.user_id, u.first_name, u.last_name, u.icon, p.post_id, p.user_id, p.time, p.picture
-    ORDER BY max_eloRating DESC
+    ORDER BY newRating DESC
     LIMIT 10;
 
   `;
@@ -75,4 +75,7 @@ router.post("/data", async (req: Request, res: Response) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   });
+
+
+  
   
