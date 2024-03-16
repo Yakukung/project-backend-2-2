@@ -31,9 +31,6 @@ router.get("/", (req, res) => {
         }
     });
 });
-
-
-
 router.post('/', async (req: Request, res: Response) => {
     try {
         const { winnerPostId, loserPostId } = req.body;
@@ -70,51 +67,45 @@ router.post('/', async (req: Request, res: Response) => {
         const [updatedWinner] = await queryAsync('SELECT * FROM posts WHERE post_id = ?', [winnerPostId]);
         const [updatedLoser] = await queryAsync('SELECT * FROM posts WHERE post_id = ?', [loserPostId]);
 
-        // 6. นำคะแนน `score` มาใส่ในตาราง `votes`:
-        await queryAsync('INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?,  ?, CURRENT_TIMESTAMP())', [
-            winnerPostId,
-            updatedEloRatingWinner,
-            oldRatingWinner
-        ]);
+        const allPostsScores = await queryAsync('SELECT post_id, score FROM posts', []);
 
-        await queryAsync('INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())', [
-            loserPostId,
-            updatedEloRatingLoser,
-            oldRatingLoser
-        ]);
+        for (const postScore of allPostsScores) {
+            const initialEloRating = postScore.score;
 
-        const statWiner = oldRatingWinner-updatedEloRatingWinner;
-        const statLoser = oldRatingLoser-updatedEloRatingLoser;
+            await queryAsync('INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())', [
+                postScore.post_id,
+                postScore.score,
+                initialEloRating,
+            ]);
+        }
 
-       // ดึงโพสต์ทั้งหมดจากฐานข้อมูล
-       const allPosts = await queryAsync('SELECT * FROM posts',[]);
+        // 7. อัปเดตอันดับของโพสต์ในตาราง "votes"
+        const allPostsOrdered = allPostsScores.sort((a, b) => b.score - a.score);
+        for (let i = 0; i < allPostsOrdered.length; i++) {
+            const postId = allPostsOrdered[i].post_id;
+            const rank = i + 1;
 
-       // เรียงลำดับโพสต์ตามคะแนน
-       allPosts.sort((a, b) => b.score - a.score);
+            await queryAsync('UPDATE votes SET newRank = ? WHERE post_id = ?', [rank, postId]);
+        }
 
-       // อัปเดตอันดับของโพสต์
-       for (let i = 0; i < allPosts.length; i++) {
-           const postId = allPosts[i].post_id;
-           const rank = i + 1;
+        await queryAsync('UPDATE votes SET oldRating = ? WHERE post_id = ?', [ oldRatingWinner, winnerPostId]);
+        await queryAsync('UPDATE votes SET oldRating = ? WHERE post_id = ?', [oldRatingLoser, loserPostId]);
 
-           await queryAsync('UPDATE votes SET rank = ? WHERE post_id = ?', [rank, postId]);
-       }
-
-
-        // 7. ส่งคำตอบกลับ:
         res.json({
             message: 'Vote successfully recorded',
             updatedWinner,
-            updatedEloRatingWinner: { oldRating: oldRatingWinner, newRating: updatedEloRatingWinner, stat: statWiner},
+            updatedEloRatingWinner: { oldRating: oldRatingWinner, newRating: updatedEloRatingWinner },
             updatedLoser,
-            updatedEloRatingLoser: { oldRating: oldRatingLoser, newRating: updatedEloRatingLoser,   stat: statLoser},
+            updatedEloRatingLoser: { oldRating: oldRatingLoser, newRating: updatedEloRatingLoser },
         });
     } catch (error) {
-        // 8. จัดการข้อผิดพลาด:
         console.error('Error processing vote:', error);
         res.status(500).json({ error: 'Error processing vote' });
     }
 });
+
+
+
 
 
 
@@ -132,16 +123,20 @@ async function queryAsync(query: string, params: any[]): Promise<any[]> {
     });
 }
 
-// ฟังก์ชันคำนวณ Elo Rating:
 function calculateUpdatedEloRating(initialEloRating: number, opponentEloRating: number, isWinner: boolean): { updatedEloRating: number, oldRating: number } {
     const K = 32;
     const Ea = 1 / (1 + Math.pow(10, (opponentEloRating - initialEloRating) / 400));
     const Eb = 1 / (1 + Math.pow(10, (initialEloRating - opponentEloRating) / 400));
 
+    // เก็บค่าเดิมของ Elo rating
+    const oldRating = initialEloRating;
+
+    // คำนวณ Elo rating ใหม่
     const updatedEloRating = isWinner ? initialEloRating + K * (1 - Ea) : initialEloRating + K * (0 - Eb);
 
     return {
         updatedEloRating,
-        oldRating: initialEloRating,
+        oldRating,
     };
 }
+
