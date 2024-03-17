@@ -105,11 +105,6 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 
-
-
-
-
-
 // ฟังก์ชันทำ query ในฐานข้อมูล แบบ Promise:
 async function queryAsync(query: string, params: any[]): Promise<any[]> {
     return new Promise((resolve, reject) => {
