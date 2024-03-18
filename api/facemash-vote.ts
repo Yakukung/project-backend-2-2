@@ -2,6 +2,7 @@
 import express from "express";
 import { conn } from "../dbconnect";
 import { Request, Response, Router } from "express";
+import { format } from 'date-fns';
 
 export const router = express.Router();
 
@@ -39,9 +40,7 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const { winnerPostId, loserPostId } = req.body;
 
-    // 6. เริ่มวันใหม่: ตรวจสอบว่ามีข้อมูลใน votes ของวันใหม่หรือไม่ ถ้าไม่มีให้เพิ่มข้อมูลทุก post_id จากตาราง posts เข้าไปใน votes
-    const currentDate = new Date().toISOString().slice(0, 10); // ดึงวันที่ปัจจุบัน
-    // const currentDate = new Date('2024-03-19')
+    const currentDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
 
     const existingVotes = await queryAsync(
       "SELECT * FROM votes WHERE DATE(time) = ?",
@@ -54,13 +53,15 @@ router.post("/", async (req: Request, res: Response) => {
       );
       for (const post of allPosts) {
         const { post_id, score, newRank } = post;
-
+    
+        // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
         await queryAsync(
-          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, ?)",
-          [post_id, score, score, newRank, currentDate]
+          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+          [post_id, score, score, newRank]
         );
       }
     }
+    
 
     // 2. ตรวจสอบโพสต์ผู้ชนะและผู้แพ้:
     const [selectedWinner] = await queryAsync(
