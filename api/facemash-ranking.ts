@@ -21,6 +21,7 @@ router.get("/date-options", async (req: Request, res: Response) => {
             FROM votes 
             WHERE time >= '${formattedStartDate} 00:00:00' AND time <= '${formattedEndDate} 23:59:59'
             GROUP BY date
+            ORDER BY date DESC;
         `;
         
         const result = await queryAsync(query);
