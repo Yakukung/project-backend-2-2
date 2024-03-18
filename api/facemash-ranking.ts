@@ -8,7 +8,7 @@ export const router = express.Router();
 router.get("/date-options", async (req: Request, res: Response) => {
     try {
         const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7);
+        startDate.setDate(startDate.getDate() - 2);
         const formattedStartDate = startDate.toISOString().split('T')[0];
 
         const endDate = new Date();
@@ -61,7 +61,6 @@ router.post("/data", async (req: Request, res: Response) => {
     `;
 
     try {
-        // Query ข้อมูลโพสต์ตามวันที่ที่ผู้ใช้เลือก
         const result = await queryAsync(mysql.format(query, [selectedDate]));
         console.log('Generated SQL Query:', mysql.format(query, [selectedDate]));
         console.log('SQL Query Result:', result);
@@ -69,9 +68,8 @@ router.post("/data", async (req: Request, res: Response) => {
         if (Array.isArray(result) && result.length > 0) {
             console.log('Data retrieved:', result);
 
-            // ดึงข้อมูลโพสต์จากวันก่อนหน้า
             const previousDate = new Date(selectedDate);
-            previousDate.setDate(previousDate.getDate() - 1); // ลดลงหนึ่งวันก่อนที่จะดึงข้อมูลของวันก่อนหน้านั้น
+            previousDate.setDate(previousDate.getDate() - 1);
             const formattedPreviousDate = previousDate.toISOString().split('T')[0];
 
             const previousResult = await queryAsync(mysql.format(query, [formattedPreviousDate]));
@@ -86,10 +84,8 @@ router.post("/data", async (req: Request, res: Response) => {
                     const deltaRank = previousPost ? oldRank - newRank : 0;
                     const status = deltaRank < 0 ? "ลด" : deltaRank > 0 ? "เพิ่ม" : "ไม่เปลี่ยนแปลง";
 
-                    // เพิ่มเงื่อนไขเพิ่มหรือลดลงในการตรวจสอบ deltaRank
                     const rankChange = deltaRank !== 0 ? (deltaRank < 0 ? "ลดลง" : "เพิ่มขึ้น") : "ไม่เปลี่ยนแปลง";
 
-                    // คำนวณคะแนนเพิ่มหรือลด
                     let deltaNewRating = 0;
                     if (previousPost) {
                         const previousNewRating = previousPost.newRating;
@@ -97,7 +93,6 @@ router.post("/data", async (req: Request, res: Response) => {
                         deltaNewRating = currentNewRating - previousNewRating;
                     }
 
-                    // แสดงผลลัพธ์การเพิ่มหรือลดอันดับพร้อมสถานะและคะแนนเพิ่มหรือลด
                     const sign = deltaNewRating >= 0 ? "+" : "-";
                     console.log(`Post ID: ${post.post_id}, Old Rank: ${oldRank}, New Rank: ${newRank}, Delta Rank: ${Math.abs(deltaRank)} (${status}), Delta Rating: ${sign}${Math.abs(deltaNewRating)} (${selectedDate} -> ${formattedPreviousDate}), Rank Change: ${rankChange}`);
 
@@ -107,14 +102,14 @@ router.post("/data", async (req: Request, res: Response) => {
                     post.status = status;
                     post.deltaNewRating = deltaNewRating;
                     post.oldRank = oldRank;
-                    post.rankChange = rankChange; // เพิ่มข้อมูลการเปลี่ยนแปลงลำดับ
+                    post.rankChange = rankChange;
                 });
 
             }
-            res.json(result); // ส่งข้อมูลโพสต์ที่ได้รับจากการ query พร้อมข้อมูลการเปลี่ยนแปลงอันดับกลับไปยังผู้ใช้
+            res.json(result);
         } else {
             console.log('Data not found');
-            res.status(404).json({ error: "Data not found" }); // ส่งข้อความแจ้งเตือนว่าไม่พบข้อมูลโพสต์ในวันที่เลือก
+            res.status(404).json({ error: "Data not found" }); 
         }
 
     } catch (err: any) {
