@@ -9,7 +9,8 @@ import { router as ranking } from "./api/facemash-ranking";
 import { router as uploadPost } from "./api/facemash-upload";
 import { router as vote } from "./api/facemash-vote";
 import { router as profile } from "./api/facemash-profile";
-import { router as graph } from "./api/facemash-graph";
+import { router as stat } from "./api/facemash-stat";
+import { router as admin } from "./api/facemash-admin";
 
 export const app = express();
 
@@ -28,6 +29,7 @@ app.use("/facemash/vote", vote);
 app.use("/facemash/ranking", ranking);
 app.use("/facemash/profile", profile);
 app.use("/facemash/upload", uploadPost);
-app.use("/facemash/graph", graph);
+app.use("/facemash/stat", stat);
+app.use("/facemash/admin", admin);
 
 

@@ -32,7 +32,22 @@ router.post("/", (req, res) => {
     });
   });
   
-  
+  router.post("/show-user", (req, res) => {
+    const user_id = req.body.user_id;
+    conn.query('SELECT * FROM users WHERE user_id = ?', [user_id], (err, result, fields) => {
+      if (err) {
+        console.error("Error fetching user data:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      } else {
+        if (result.length > 0) {
+          const user_data = result[0];
+          res.json(user_data);
+        } else {
+          res.status(404).json({ error: "User not found" });
+        }
+      }
+    });
+  });
   
   
   
