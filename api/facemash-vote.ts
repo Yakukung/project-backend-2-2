@@ -1,7 +1,7 @@
 // facemash-vote.ts
 import express from "express";
 import { conn } from "../dbconnect";
-import { Request, Response, Router } from "express";
+import { Request, Response } from "express";
 import { format } from 'date-fns';
 
 export const router = express.Router();
