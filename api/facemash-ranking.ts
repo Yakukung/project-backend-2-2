@@ -9,6 +9,7 @@ router.get("/date-options", async (req: Request, res: Response) => {
     try {
         const startDate = new Date();
         startDate.setHours(0, 0, 0, 0); // Set to the beginning of the day
+        startDate.setDate(startDate.getDate() - 7);
         
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 1); // Move to the next month
