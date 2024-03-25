@@ -39,28 +39,47 @@ router.get("/", (req, res) => {
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { winnerPostId, loserPostId } = req.body;
+  // ก่อนทำอะไรทุกอย่าง เราจะ console.log ค่าของ currentDate เพื่อตรวจสอบว่ามันคืออะไร
+  const currentDate = format(new Date(), 'yyyy-MM-dd');
+  console.log("currentDate: ", currentDate); // ดูค่า currentDate ที่ได้ทาง console log
 
-    const currentDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
+  const existingVotes = await queryAsync(
+    "SELECT * FROM votes WHERE DATE(time) = ?",
+    [currentDate]
+  );
 
-    const existingVotes = await queryAsync(
-      "SELECT * FROM votes WHERE DATE(time) = ?",
+  if (existingVotes.length === 0) {
+    const allPosts = await queryAsync(
+      "SELECT post_id, score, newRank FROM posts",
+      []
+    );
+    console.log(" existingVotes: ",  existingVotes); 
+
+    for (const post of allPosts) {
+      const { post_id, score, newRank } = post;
+
+      // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
+      await queryAsync(
+        "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+        [post_id, score, score, newRank]
+      );
+    }
+  } else {
+    // ถ้ามี votes ในวันนั้นแล้ว
+    const newPosts = await queryAsync(
+      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) = ?)",
       [currentDate]
     );
-    if (existingVotes.length === 0) {
-      const allPosts = await queryAsync(
-        "SELECT post_id, score, newRank FROM posts",
-        []
-      );
-      for (const post of allPosts) {
-        const { post_id, score, newRank } = post;
     
-        // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
-        await queryAsync(
-          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
-          [post_id, score, score, newRank]
-        );
-      }
+
+    for (const newPost of newPosts) {
+      // เพิ่มเฉพาะ post_id ที่มาใหม่ในวันนั้น
+      await queryAsync(
+        "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+        [newPost.post_id, 1200, 1200, 0] // สามารถกำหนดค่าใดๆ ที่ต้องการสำหรับ newRating, oldRating, และ newRank ได้ตามความเหมาะสม
+      );
     }
+  }
     
 
     // 2. ตรวจสอบโพสต์ผู้ชนะและผู้แพ้:
@@ -139,27 +158,44 @@ router.post("/", async (req: Request, res: Response) => {
       [updatedEloRatingWinner, oldRatingWinner, winnerPostId]
     );
 
-    // 6. อัปเดตอันดับของโพสต์ในตาราง "votes"
-    const allPostsScores = await queryAsync(
-      "SELECT post_id, score FROM posts",
-      []
-    );
-    const allPostsOrdered = allPostsScores.sort((a, b) => b.score - a.score);
-    // Update data for votes and posts with current date
-    for (let i = 0; i < allPostsOrdered.length; i++) {
-      const postId = allPostsOrdered[i].post_id;
-      const rank = i + 1;
+// 6. อัปเดตอันดับของโพสต์ในตาราง "votes" และ "posts"
+const allPostsScores = await queryAsync(
+  "SELECT post_id, score FROM posts",
+  []
+);
 
-      // Update vote_id และ posts เฉพาะในวันปัจจุบันเท่านั้น
-      await queryAsync(
-        "UPDATE votes SET newRank = ? WHERE post_id = ? AND DATE(time) = CURRENT_DATE()",
-        [rank, postId]
-      );
-      await queryAsync(
-        "UPDATE posts SET newRank = ? WHERE post_id = ? AND DATE(time) = CURRENT_DATE()",
-        [rank, postId]
-      );
-    }
+// เรียงลำดับโพสต์ตามคะแนนจากมากไปน้อย
+const allPostsOrdered = allPostsScores.sort((a, b) => b.score - a.score);
+
+// อัปเดตแรงค์สำหรับทุกโพสต์ในวันปัจจุบัน
+for (let i = 0; i < allPostsOrdered.length; i++) {
+  const postId = allPostsOrdered[i].post_id;
+  const rank = i + 1;
+
+  // อัปเดตแรงค์ในตาราง "votes"
+  await queryAsync(
+    "UPDATE votes SET newRank = ? WHERE post_id = ? AND DATE(time) = CURRENT_DATE()",
+    [rank, postId]
+  );
+}
+// ดึง rank จากตาราง "votes"
+const votesRank = await queryAsync(
+  "SELECT post_id, newRank, newRating FROM votes WHERE DATE(time) = CURRENT_DATE()",[]
+);
+
+// อัปเดตแรงค์ในตาราง "posts" โดยใช้ข้อมูลจากตาราง "votes"
+for (const vote of votesRank) {
+  const postId = vote.post_id;
+  const rank = vote.newRank;
+  const score = vote.newRating;
+  // อัปเดตแรงค์ในตาราง "posts"
+  await queryAsync(
+    "UPDATE posts SET newRank = ?, score = ?  WHERE post_id = ?",
+    [rank, score, postId]
+  );
+}
+
+
 
     // Update old ratings in the votes table for the winner and loser with the current date
     await queryAsync(
