@@ -8,14 +8,16 @@ export const router = express.Router();
 router.get("/date-options", async (req: Request, res: Response) => {
     try {
         const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 2);
-        const formattedStartDate = startDate.toISOString().split('T')[0];
-
+        startDate.setHours(0, 0, 0, 0); // Set to the beginning of the day
+        
         const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 1); // Move to the next month
+        endDate.setDate(0); // Set to the last day of the current month
         endDate.setHours(23, 59, 59, 999); // Set to the end of the day
+        
+        const formattedStartDate = startDate.toISOString().split('T')[0];
         const formattedEndDate = endDate.toISOString().split('T')[0];
         
-
         const query = `
             SELECT DISTINCT DATE_FORMAT(time, '%Y-%m-%d') as date 
             FROM votes 
