@@ -66,20 +66,20 @@ router.post("/", async (req: Request, res: Response) => {
 
     for (const post of allPosts) {
       const { post_id, score, newRank } = post;
-
       // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
       await queryAsync(
         "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
         [post_id, score, score, newRank]
       );
     }
-  } else {
+
+  }
+   if(existingVotes.length > 0){
     // ถ้ามี votes ในวันนั้นแล้ว
     const newPosts = await queryAsync(
-      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?) AND DATE(posts.createdAt) = ? AND NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) = ?)",
-      [formattedStartDate, formattedEndDate, formattedStartDate, formattedStartDate]
+      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?) AND DATE(posts.createdAt) = ?",
+      [formattedStartDate, formattedEndDate, formattedStartDate]
     );
-    
     
     for (const newPost of newPosts) {
       // เพิ่มเฉพาะ post_id ที่มาใหม่ในวันนั้น
