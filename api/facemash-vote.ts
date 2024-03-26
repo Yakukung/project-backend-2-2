@@ -74,21 +74,29 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
   }
-   if(existingVotes.length > 0){
+  else {
     // ถ้ามี votes ในวันนั้นแล้ว
     const newPosts = await queryAsync(
-      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?) AND DATE(posts.createdAt) = ?",
-      [formattedStartDate, formattedEndDate, formattedStartDate]
+      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?)",
+      [formattedStartDate, formattedEndDate]
     );
     
     for (const newPost of newPosts) {
       // เพิ่มเฉพาะ post_id ที่มาใหม่ในวันนั้น
-      await queryAsync(
-        "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
-        [newPost.post_id, 1200, 1200, 0] // สามารถกำหนดค่าใดๆ ที่ต้องการสำหรับ newRating, oldRating, และ newRank ได้ตามความเหมาะสม
+      const existingVote = await queryAsync(
+        "SELECT * FROM votes WHERE post_id = ? AND DATE(time) >= ? AND DATE(time) <= ?",
+        [newPost.post_id, formattedStartDate, formattedEndDate]
       );
+
+      if (existingVote.length === 0) {
+        await queryAsync(
+          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+          [newPost.post_id, 1200, 1200, 0] // สามารถกำหนดค่าใดๆ ที่ต้องการสำหรับ newRating, oldRating, และ newRank ได้ตามความเหมาะสม
+        );
+      }
     }
-  }
+}
+
     
 
     // 2. ตรวจสอบโพสต์ผู้ชนะและผู้แพ้:
