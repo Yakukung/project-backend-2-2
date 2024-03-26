@@ -40,51 +40,55 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const { winnerPostId, loserPostId } = req.body;
 
-    const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0); // Set to the beginning of the day
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
 
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999); // Set to the end of the day
+  const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999);
 
-    const formattedStartDate = startDate.toISOString();
-    const formattedEndDate = endDate.toISOString();
+  const formattedStartDate = startDate.toISOString();
+  const formattedEndDate = endDate.toISOString();
 
-    const existingVotes = await queryAsync(
-      `SELECT * FROM votes WHERE time >= ? AND time <= ?`,
-      [formattedStartDate, formattedEndDate]
+  const existingVotes = await queryAsync(
+    `SELECT * FROM votes WHERE time >= ? AND time <= ?`,
+    [formattedStartDate, formattedEndDate]
+  );
+  console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
+  
+
+
+  if (existingVotes.length === 0) {
+    const allPosts = await queryAsync(
+      "SELECT post_id, score, newRank FROM posts",
+      []
     );
+    console.log(" existingVotes: ",  existingVotes); 
 
-    console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
+    for (const post of allPosts) {
+      const { post_id, score, newRank } = post;
 
-    if (existingVotes.length === 0) {
-      const allPosts = await queryAsync(
-        "SELECT post_id FROM posts",
-        []
+      // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
+      await queryAsync(
+        "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+        [post_id, score, score, newRank]
       );
-
-      for (const post of allPosts) {
-        const { post_id } = post;
-
-        await queryAsync(
-          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
-          [post_id, 1200, 1200, 0] // You can set any values you want for newRating, oldRating, and newRank as per your requirement
-        );
-      }
-    } else {
-      // If there are votes on that day already
-      const newPosts = await queryAsync(
-        "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?)",
-        [formattedStartDate, formattedEndDate]
-      );
-
-      for (const newPost of newPosts) {
-        // Insert only the new post_id for that day
-        await queryAsync(
-          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
-          [newPost.post_id, 1200, 1200, 0] // You can set any values you want for newRating, oldRating, and newRank as per your requirement
-        );
-      }
     }
+  } else {
+    // ถ้ามี votes ในวันนั้นแล้ว
+    const newPosts = await queryAsync(
+      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?) AND DATE(posts.createdAt) = ? AND NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) = ?)",
+      [formattedStartDate, formattedEndDate, formattedStartDate, formattedStartDate]
+    );
+    
+    
+    for (const newPost of newPosts) {
+      // เพิ่มเฉพาะ post_id ที่มาใหม่ในวันนั้น
+      await queryAsync(
+        "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+        [newPost.post_id, 1200, 1200, 0] // สามารถกำหนดค่าใดๆ ที่ต้องการสำหรับ newRating, oldRating, และ newRank ได้ตามความเหมาะสม
+      );
+    }
+  }
     
 
     // 2. ตรวจสอบโพสต์ผู้ชนะและผู้แพ้:
