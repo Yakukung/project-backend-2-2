@@ -40,14 +40,16 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const { winnerPostId, loserPostId } = req.body;
 
-  const startDate = new Date();
-  startDate.setHours(0, 0, 0, 0);
-
-  const endDate = new Date();
-  endDate.setHours(23, 59, 59, 999);
-
-  const formattedStartDate = startDate.toISOString();
-  const formattedEndDate = endDate.toISOString();
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    const startDateString = startDate.toLocaleDateString("en-US", { timeZone: "Asia/Bangkok" });
+    
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const endDateString = endDate.toLocaleDateString("en-US", { timeZone: "Asia/Bangkok" });
+    
+    const formattedStartDate = new Date(startDateString).toISOString();
+    const formattedEndDate = new Date(endDateString).toISOString();
 
   const existingVotes = await queryAsync(
     `SELECT * FROM votes WHERE time >= ? AND time <= ?`,
