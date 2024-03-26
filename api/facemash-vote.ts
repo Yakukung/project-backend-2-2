@@ -42,14 +42,15 @@ router.post("/", async (req: Request, res: Response) => {
 
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
-    const startDateString = startDate.toLocaleDateString("en-US", { timeZone: "Asia/Bangkok" });
+    startDate.setDate(startDate.getDate() + 1); // เพิ่มวันที่ 1 ให้กับวันเริ่มต้น
     
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
-    const endDateString = endDate.toLocaleDateString("en-US", { timeZone: "Asia/Bangkok" });
+    endDate.setDate(endDate.getDate() + 1); // เพิ่มวันที่ 1 ให้กับวันสิ้นสุด
     
-    const formattedStartDate = new Date(startDateString).toISOString();
-    const formattedEndDate = new Date(endDateString).toISOString();
+    const formattedStartDate = startDate.toISOString();
+    const formattedEndDate = endDate.toISOString();
+    
 
   const existingVotes = await queryAsync(
     `SELECT * FROM votes WHERE time >= ? AND time <= ?`,
