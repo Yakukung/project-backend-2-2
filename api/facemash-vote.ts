@@ -39,14 +39,23 @@ router.get("/", (req, res) => {
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { winnerPostId, loserPostId } = req.body;
-  // ก่อนทำอะไรทุกอย่าง เราจะ console.log ค่าของ currentDate เพื่อตรวจสอบว่ามันคืออะไร
-  const currentDate = format(new Date(), 'yyyy-MM-dd');
-  console.log("currentDate: ", currentDate); // ดูค่า currentDate ที่ได้ทาง console log
+
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0); // Set to the beginning of the day
+
+  const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999); // Set to the end of the day
+
+  const formattedStartDate = startDate.toISOString();
+  const formattedEndDate = endDate.toISOString();
 
   const existingVotes = await queryAsync(
-    "SELECT * FROM votes WHERE DATE(time) = ?",
-    [currentDate]
+    `SELECT * FROM votes WHERE time >= ? AND time <= ?`,
+    [formattedStartDate, formattedEndDate]
   );
+  console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
+  
+
 
   if (existingVotes.length === 0) {
     const allPosts = await queryAsync(
@@ -67,8 +76,8 @@ router.post("/", async (req: Request, res: Response) => {
   } else {
     // ถ้ามี votes ในวันนั้นแล้ว
     const newPosts = await queryAsync(
-      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) = ?)",
-      [currentDate]
+      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?)",
+      [formattedStartDate, formattedEndDate]
     );
     
 
@@ -120,7 +129,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // 4. อัปเดต Elo Rating และคะแนนในฐานข้อมูล:
     console.log(
-      `Before update - Winner: ${selectedWinner.score}, Loser: ${selectedLoser.score}`
+      `Before update - Post-id: ${winnerPostId} ,Winner: ${selectedWinner.score},/ Post-id: ${winnerPostId}, Loser: ${selectedLoser.score}`
     );
 
     await queryAsync("UPDATE posts SET score = ? WHERE post_id = ?", [
@@ -133,7 +142,7 @@ router.post("/", async (req: Request, res: Response) => {
     ]);
 
     console.log(
-      `After update - Winner: ${updatedEloRatingWinner}, Loser: ${updatedEloRatingLoser}`
+      `After update -  Post-id: ${loserPostId}, Winner: ${updatedEloRatingWinner},/ Post-id: ${loserPostId}, Loser: ${updatedEloRatingLoser}`
     );
 
     // 5. ดึงข้อมูลโพสต์ที่อัปเดต:
