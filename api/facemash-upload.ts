@@ -191,7 +191,7 @@ router.post("/post", fileUpload.diskLoader.single("file"), async (req, res) => {
 
     // Insert a new record into the "posts" table
     conn.query(
-      "INSERT INTO posts (user_id, picture) VALUES (?, ?)",
+      "INSERT INTO posts (user_id, picture ,newRating, oldRatung) VALUES (?, ?, 1200, 1200)",
       [user_id, fileDownloadUrl],
       (error, results) => {
         if (error) {

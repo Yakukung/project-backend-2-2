@@ -92,8 +92,8 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (existingVote.length === 0) {
         await queryAsync(
-          "INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())",
-          [newPost.post_id, 1200, 1200] 
+          "INSERT INTO votes (post_id, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())",
+          [newPost.post_id,] 
         );
       }
     }
