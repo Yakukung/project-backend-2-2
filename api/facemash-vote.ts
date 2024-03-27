@@ -69,7 +69,6 @@ router.post("/", async (req: Request, res: Response) => {
 
     for (const post of allPosts) {
       const { post_id, score, newRank } = post;
-      // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
       await queryAsync(
         "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
         [post_id, score, score, newRank]
@@ -93,8 +92,8 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (existingVote.length === 0) {
         await queryAsync(
-          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
-          [newPost.post_id, 1200, 1200, 0] // สามารถกำหนดค่าใดๆ ที่ต้องการสำหรับ newRating, oldRating, และ newRank ได้ตามความเหมาะสม
+          "INSERT INTO votes (post_id, newRating, oldRating, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())",
+          [newPost.post_id, 1200, 1200] 
         );
       }
     }
