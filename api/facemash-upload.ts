@@ -16,7 +16,7 @@ import {
   FullMetadata,
 } from "@firebase/storage";
 import { conn, mysql, queryAsync } from "../dbconnect";
-import { Request, Response } from "express";
+import { v4 as uuid } from 'uuid';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCTHkImD_Lp8UFWaZe3--7JXVJ6VyTS8zk",
@@ -169,9 +169,12 @@ router.post("/post", fileUpload.diskLoader.single("file"), async (req, res) => {
     }
 
     const originalFileName = req.file.originalname;
+    const fileId: string = uuid(); // สร้างชื่อไฟล์แบบสุ่ม
+    const fileExtension: string = path.extname(originalFileName); // ดึงนามสกุลของไฟล์
+    const newFileName: string = `${fileId}${fileExtension}`; // กำหนดชื่อไฟล์ใหม่
     latestId += 1;
 
-    const filePath = `/assets/img/${first_name}/post/${originalFileName}`;
+    const filePath = `/assets/img/${first_name}/post/${newFileName}`;
     const localFilePath = path.join(__dirname, `..${filePath}`);
 
     const directoryPath = path.dirname(localFilePath);
@@ -191,7 +194,7 @@ router.post("/post", fileUpload.diskLoader.single("file"), async (req, res) => {
 
     // Insert a new record into the "posts" table
     conn.query(
-      "INSERT INTO posts (user_id, picture ,newRating, oldRatung) VALUES (?, ?, 1200, 1200)",
+      "INSERT INTO posts (user_id, picture, score) VALUES (?, ?, 1200)",
       [user_id, fileDownloadUrl],
       (error, results) => {
         if (error) {
@@ -231,9 +234,13 @@ router.post("/icon", fileUpload.diskLoader.single("file"), async (req, res) => {
     }
 
     const originalFileName = req.file.originalname;
+    const fileId: string = uuid(); // สร้างชื่อไฟล์แบบสุ่ม
+    const fileExtension: string = path.extname(originalFileName); // ดึงนามสกุลของไฟล์
+    const newFileName: string = `${fileId}${fileExtension}`; // กำหนดชื่อไฟล์ใหม่
+    
     latestId += 1;
 
-    const filePath = `/assets/img/${first_name}/icon/${originalFileName}`;
+    const filePath = `/assets/img/${first_name}/icon/${newFileName}`;
     const localFilePath = path.join(__dirname, `..${filePath}`);
 
     const directoryPath = path.dirname(localFilePath);
@@ -296,9 +303,12 @@ router.post(
       }
 
       const originalFileName = req.file.originalname;
+      const fileId: string = uuid(); // สร้างชื่อไฟล์แบบสุ่ม
+      const fileExtension: string = path.extname(originalFileName); // ดึงนามสกุลของไฟล์
+      const newFileName: string = `${fileId}${fileExtension}`; // กำหนดชื่อไฟล์ใหม่
       latestId += 1;
 
-      const filePath = `/assets/img/${first_name}/banner/${originalFileName}`;
+      const filePath = `/assets/img/${first_name}/banner/${newFileName}`;
       const localFilePath = path.join(__dirname, `..${filePath}`);
 
       const directoryPath = path.dirname(localFilePath);
@@ -342,71 +352,6 @@ router.post(
   }
 );
 
-router.post(
-  "/banner",
-  fileUpload.diskLoader.single("file"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        res.status(400).json({ error: "File not found in request" });
-        return;
-      }
-
-      const fileBuffer = req.file.buffer;
-
-      const { first_name, user_id } = req.body;
-
-      if (!first_name || !user_id) {
-        res.status(400).json({ error: "Missing required information" });
-        return;
-      }
-
-      const originalFileName = req.file.originalname;
-      latestId += 1;
-
-      const filePath = `/assets/img/${first_name}/post/${originalFileName}`;
-      const localFilePath = path.join(__dirname, `..${filePath}`);
-
-      const directoryPath = path.dirname(localFilePath);
-      if (!fs.existsSync(directoryPath)) {
-        fs.mkdirSync(directoryPath, { recursive: true });
-      }
-
-      await fs.promises.writeFile(localFilePath, fileBuffer);
-
-      const storageRef = ref(storage, filePath);
-      await uploadBytes(storageRef, fileBuffer);
-
-      // Construct the URL for the uploaded image without leading %2F
-      const fileDownloadUrl = `https://firebasestorage.googleapis.com/v0/b/${
-        storageRef.bucket
-      }/o/${encodeURIComponent(filePath).replace("%2F", "")}?alt=media`;
-
-      // Insert a new record into the "posts" table
-      conn.query(
-        "UPDATE users SET banner = ? WHERE user_id = ?",
-        [fileDownloadUrl, user_id],
-        (error, results) => {
-          if (error) {
-            console.error("Error inserting into database:", error);
-            res.status(500).json({ error: "Internal Server Error" });
-          } else {
-            res.json({
-              id: latestId.toString(),
-              filename: filePath,
-              first_name: first_name,
-              user_id: user_id,
-              banner: fileDownloadUrl,
-            });
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  }
-);
 
 router.put("/firstname", (req, res) => {
   const { first_name, user_id } = req.body;
@@ -459,7 +404,6 @@ router.delete("/delete-icon", async (req, res) => {
   const DeleteIcon = `UPDATE users SET icon = NULL WHERE user_id = ${user_id}`;
   await queryAsync(DeleteIcon);
 
-
   const filePath = users.icon;
   await deleteObject(ref(storage, filePath));
 
@@ -467,8 +411,6 @@ router.delete("/delete-icon", async (req, res) => {
     .status(200)
     .json({ message: "Post and associated image deleted successfully" });
 });
-
-
 
 router.delete("/delete-banner", async (req, res) => {
   const { user_id } = req.query;

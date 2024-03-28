@@ -42,11 +42,13 @@ router.post("/", async (req: Request, res: Response) => {
 
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
-    startDate.setDate(startDate.getDate() + 1); // เพิ่มวันที่ 1 ให้กับวันเริ่มต้น
+    startDate.setUTCHours(startDate.getUTCHours() + 7);
+    startDate.setDate(startDate.getDate());
     
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
-    endDate.setDate(endDate.getDate() + 1); // เพิ่มวันที่ 1 ให้กับวันสิ้นสุด
+    endDate.setUTCHours(endDate.getUTCHours() + 7);
+    endDate.setDate(endDate.getDate());
     
     const formattedStartDate = startDate.toISOString();
     const formattedEndDate = endDate.toISOString();
@@ -69,6 +71,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     for (const post of allPosts) {
       const { post_id, score, newRank } = post;
+      // เปลี่ยนคำสั่ง SQL เพื่อใช้ CURRENT_TIMESTAMP() ตรงๆ และไม่ใช้ CURRENT_DATE()
       await queryAsync(
         "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
         [post_id, score, score, newRank]
@@ -79,11 +82,12 @@ router.post("/", async (req: Request, res: Response) => {
   else {
     // ถ้ามี votes ในวันนั้นแล้ว
     const newPosts = await queryAsync(
-      "SELECT post_id FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?)",
+      "SELECT * FROM posts WHERE NOT EXISTS (SELECT * FROM votes WHERE votes.post_id = posts.post_id AND DATE(votes.time) >= ? AND DATE(votes.time) <= ?)",
       [formattedStartDate, formattedEndDate]
     );
     
     for (const newPost of newPosts) {
+      const {score, newRank } = newPost;
       // เพิ่มเฉพาะ post_id ที่มาใหม่ในวันนั้น
       const existingVote = await queryAsync(
         "SELECT * FROM votes WHERE post_id = ? AND DATE(time) >= ? AND DATE(time) <= ?",
@@ -92,8 +96,8 @@ router.post("/", async (req: Request, res: Response) => {
 
       if (existingVote.length === 0) {
         await queryAsync(
-          "INSERT INTO votes (post_id, time) VALUES (?, ?, ?, CURRENT_TIMESTAMP())",
-          [newPost.post_id,] 
+          "INSERT INTO votes (post_id, newRating, oldRating, newRank, time) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP())",
+          [newPost.post_id, score, score, newRank] // สามารถกำหนดค่าใดๆ ที่ต้องการสำหรับ newRating, oldRating, และ newRank ได้ตามความเหมาะสม
         );
       }
     }
