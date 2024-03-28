@@ -50,8 +50,8 @@ router.post("/", async (req: Request, res: Response) => {
     endDate.setUTCHours(endDate.getUTCHours() + 7); // เพิ่ม 7 ชั่วโมงสำหรับโซนเวลาของประเทศไทย
     endDate.setDate(endDate.getDate());
     
-    const formattedStartDate = startDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-    const formattedEndDate = endDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    const formattedStartDate = startDate.toISOString().slice(0, 19).replace('T', ' '); // แปลงเป็น ISO string และลบส่วนที่ไม่ใช่วันที่และเวลาออก
+    const formattedEndDate = endDate.toISOString().slice(0, 19).replace('T', ' '); // แปลงเป็น ISO string และลบส่วนที่ไม่ใช่วันที่และเวลาออก
     
     console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
     
