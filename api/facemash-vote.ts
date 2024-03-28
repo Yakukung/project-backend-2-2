@@ -42,16 +42,19 @@ router.post("/", async (req: Request, res: Response) => {
 
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
-    startDate.setUTCHours(startDate.getUTCHours() + 7);
+    startDate.setUTCHours(startDate.getUTCHours() + 7); // เพิ่ม 7 ชั่วโมงสำหรับโซนเวลาของประเทศไทย
     startDate.setDate(startDate.getDate());
     
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
-    endDate.setUTCHours(endDate.getUTCHours() + 7);
+    endDate.setUTCHours(endDate.getUTCHours() + 7); // เพิ่ม 7 ชั่วโมงสำหรับโซนเวลาของประเทศไทย
     endDate.setDate(endDate.getDate());
     
-    const formattedStartDate = startDate.toISOString();
-    const formattedEndDate = endDate.toISOString();
+    const formattedStartDate = startDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    const formattedEndDate = endDate.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    
+    console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
+    
     
 
   const existingVotes = await queryAsync(
