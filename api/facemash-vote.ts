@@ -36,6 +36,7 @@ router.get("/", (req, res) => {
     }
   );
 });
+
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { winnerPostId, loserPostId } = req.body;
@@ -112,8 +113,6 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
 }
-
-    
 
     // 2. ตรวจสอบโพสต์ผู้ชนะและผู้แพ้:
     const [selectedWinner] = await queryAsync(
@@ -228,8 +227,6 @@ for (const vote of votesRank) {
   );
 }
 
-
-
     // Update old ratings in the votes table for the winner and loser with the current date
     await queryAsync(
       "UPDATE votes SET oldRating = ? WHERE post_id = ? AND DATE(time) = CURRENT_DATE()",
@@ -258,6 +255,8 @@ for (const vote of votesRank) {
     res.status(500).json({ error: "Error processing vote" });
   }
 });
+
+
 
 // ฟังก์ชันทำ query ในฐานข้อมูล แบบ Promise:
 async function queryAsync(query: string, params: any[]): Promise<any[]> {
