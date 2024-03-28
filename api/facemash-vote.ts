@@ -41,19 +41,26 @@ router.post("/", async (req: Request, res: Response) => {
     const { winnerPostId, loserPostId } = req.body;
 
     const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
-    startDate.setUTCHours(startDate.getUTCHours() + 7); // เพิ่ม 7 ชั่วโมงสำหรับโซนเวลาของประเทศไทย
-    startDate.setDate(startDate.getDate());
+    startDate.setHours(0, 0, 0, 0); // กำหนดเวลาเริ่มต้นเป็น 00:00:00
     
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
-    endDate.setUTCHours(endDate.getUTCHours() + 7); // เพิ่ม 7 ชั่วโมงสำหรับโซนเวลาของประเทศไทย
-    endDate.setDate(endDate.getDate());
+    const endDate = new Date(startDate); // สร้างวันที่สิ้นสุดโดยใช้วันที่เริ่มต้น
+    endDate.setHours(23, 59, 59, 999); // กำหนดเวลาสิ้นสุดเป็น 23:59:59
     
-    const formattedStartDate = startDate.toISOString().slice(0, 19).replace('T', ' '); // แปลงเป็น ISO string และลบส่วนที่ไม่ใช่วันที่และเวลาออก
-    const formattedEndDate = endDate.toISOString().slice(0, 19).replace('T', ' '); // แปลงเป็น ISO string และลบส่วนที่ไม่ใช่วันที่และเวลาออก
+    const formattedStartDate = formatDate(startDate); // รูปแบบวันที่เริ่มต้น
+    const formattedEndDate = formatDate(endDate); // รูปแบบวันที่สิ้นสุด
     
     console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
+    
+    function formatDate(date: Date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
     
     
 
