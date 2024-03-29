@@ -50,6 +50,35 @@ router.post('/signup', (req, res) => {
 });
 });
 
+
+router.put("/reset-password", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  // ตรวจสอบว่ามีอีเมลในฐานข้อมูลหรือไม่
+  conn.query('SELECT * FROM users WHERE email = ?', [email], (err, result, fields) => {
+    if (err) {
+      console.error("Error during email check:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      if (result.length > 0) {
+        // หากพบอีเมลในฐานข้อมูล ให้ทำการอัพเดตรหัสผ่าน
+        conn.query('UPDATE users SET password = ? WHERE email = ?', [password, email], (err, updateResult, fields) => {
+          if (err) {
+            console.error("Error during password update:", err);
+            res.status(500).json({ error: "Internal Server Error" });
+          } else {
+            res.json({ success: true, message: "Password updated successfully." });
+          }
+        });
+      } else {
+        res.status(404).json({ error: "Email not found." });
+      }
+    }
+  });
+});
+
+
 router.post("/homepage", (req, res) => {
   const user_id = req.body.user_id;
   conn.query('SELECT * FROM users WHERE user_id = ?', [user_id], (err, result, fields) => {

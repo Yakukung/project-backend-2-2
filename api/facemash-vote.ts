@@ -42,13 +42,13 @@ router.post("/", async (req: Request, res: Response) => {
     const { winnerPostId, loserPostId } = req.body;
 
     const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0); // กำหนดเวลาเริ่มต้นเป็น 00:00:00
+    startDate.setHours(0, 0, 0, 0);
     
-    const endDate = new Date(startDate); // สร้างวันที่สิ้นสุดโดยใช้วันที่เริ่มต้น
-    endDate.setHours(23, 59, 59, 999); // กำหนดเวลาสิ้นสุดเป็น 23:59:59
+    const endDate = new Date(startDate); 
+    endDate.setHours(23, 59, 59, 999); 
     
     const formattedStartDate = formatDate(startDate); // รูปแบบวันที่เริ่มต้น
-    const formattedEndDate = formatDate(endDate); // รูปแบบวันที่สิ้นสุด
+    const formattedEndDate = formatDate(endDate); 
     
     console.log("Vote Start Date: ", formattedStartDate, "Vote End Date: ", formattedEndDate);
     
@@ -168,6 +168,23 @@ router.post("/", async (req: Request, res: Response) => {
       `After update -  Post-id: ${loserPostId}, Winner: ${updatedEloRatingWinner},/ Post-id: ${loserPostId}, Loser: ${updatedEloRatingLoser}`
     );
 
+    res.json({
+      message: "Vote successfully recorded",
+      updatedWinner: {
+        postId: winnerPostId,
+        newRating: updatedEloRatingWinner,
+        oldRating: oldRatingWinner
+      },
+      updatedLoser: {
+        postId: loserPostId,
+        newRating: updatedEloRatingLoser,
+        oldRating: oldRatingLoser
+      },
+      afterUpdateLog: `After update - Post-id: ${loserPostId}, Winner: ${updatedEloRatingWinner}, Post-id: ${loserPostId}, Loser: ${updatedEloRatingLoser}`
+    });
+    
+    
+
     // 5. ดึงข้อมูลโพสต์ที่อัปเดต:
     const [updatedWinner] = await queryAsync(
       "SELECT * FROM posts WHERE post_id = ?",
@@ -236,20 +253,6 @@ for (const vote of votesRank) {
       "UPDATE votes SET oldRating = ? WHERE post_id = ? AND DATE(time) = CURRENT_DATE()",
       [oldRatingLoser, loserPostId]
     );
-
-    res.json({
-      message: "Vote successfully recorded",
-      updatedWinner,
-      updatedEloRatingWinner: {
-        oldRating: oldRatingWinner,
-        newRating: updatedEloRatingWinner,
-      },
-      updatedLoser,
-      updatedEloRatingLoser: {
-        oldRating: oldRatingLoser,
-        newRating: updatedEloRatingLoser,
-      },
-    });
   } catch (error) {
     console.error("Error processing vote:", error);
     res.status(500).json({ error: "Error processing vote" });

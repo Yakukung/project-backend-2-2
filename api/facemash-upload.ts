@@ -381,6 +381,34 @@ router.put("/lastname", (req, res) => {
   });
 });
 
+router.put("/email", (req, res) => {
+  const { email, user_id } = req.body;
+  let sql = "UPDATE users SET email = ? WHERE user_id = ?";
+  sql = mysql.format(sql, [email, user_id]);
+  conn.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error updating firstname: ", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      res.status(201).json({ affected_row: result.affectedRows });
+    }
+  });
+});
+
+router.put("/password", (req, res) => {
+  const { password, user_id } = req.body;
+  let sql = "UPDATE users SET password = ? WHERE user_id = ?";
+  sql = mysql.format(sql, [password, user_id]);
+  conn.query(sql, (err, result) => {
+    if (err) {
+      console.error("Error updating firstname: ", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    } else {
+      res.status(201).json({ affected_row: result.affectedRows });
+    }
+  });
+});
+
 router.put("/about", (req, res) => {
   const { about, user_id } = req.body;
   let sql = "UPDATE users SET about = ? WHERE user_id = ?";
